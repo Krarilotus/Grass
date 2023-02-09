@@ -17,6 +17,26 @@ The game ends, if the overall score of one or more players exceeds 250k. The pla
 
 ### Cards:
 One Deck of cards contains 104 total cards. Their usecases and effects are defined below:
-#### Market Open
-#### Market Closed
-#### 
+#### Market Open (10x)
+Opens the market for the player, can only be played if the market isn't open already
+#### Market Closed (5x)
+closes the market for everyone and ends a round to score points, needs 50k in the stash of the player and can't be played while heated
+#### Peddle (12 x 5k, 10x 25k, 5x 50k, 1x 100k)
+Can be played on the players stash if the market is open and not heated. They count positively towards the players score if on stash and negative if on the players hand while scoring for the game. They can also be traded between players stashes as long as none of the parties trading is heated. They  can be stolen even if the market stolen from is heated
+#### HeatOn (4 types a 3 cards)
+Can be played on any players hassle pile to blockade their moves, which prevents them from stealing single peddle cards, playing their own peddle cards, trading peddle cards or protecting their peddle cards. It also prevents them from closing the market. You can play a 2nd heat on a player, which then takes the top spot on the hassle pile and the previous heat won't be an issue anymore.
+#### HeatOff (4 types a 5 cards)
+Same as HeatOn HeatOff comes in 4 different types which corresponds to the HeatOn types. Only a matchign heatOff can remove the corresponding HeatOn. It is played on a players hasslepile if matching with the top heatOn covering it and reopening the market
+#### PayFine (4x)
+This HeatOff works for any heat on your market, but it requires the player to pay by burning one of the tabled peddle cards from their stash.
+#### Nirvana (5x StoneHigh, 1x Euphoria)
+These cards remove any heat from the players market, take the least (StoneHigh) or the highest (Euphoria) unprotected peddlecard from all other players stashes and give the player anopther turn. This is truely OP and players usually wait for a very good time to play these!
+#### Paranoia (4x SoldOut, 3x DoubleCrossed, 1x UtterlyWipedOut)
+Each of these lets all players give one hand card to the left. They also loose you the least (Sold out) the highest (DoubleCrossaed) peddle from your tabled peddle or even the entire stash, including your opened market (UtterlyWipedOut). On top of that they make the player skip their next 1 (SoldOut) or 2 (DC, UWO) turns
+#### Protected (2x 50k, 4x 25k)
+They can be played if the market is not heated and the respective value in peddle cards is exactly met by either one or a combination of unprotected peddlecards from your stash. Then they get protected and will not be stealable nor taken by the banker in the end anymore.
+#### StealNeighborsPot (4x)
+This skim card lets the player take any open tabled peddle card from any other player as long as your own market is open and not heated. It is then put directly the players stash
+#### TheBanker (1x)
+This card is held in the hand until the game finishes.. If played, it is only discarded without an effect. It grants the holder 20% of all unprotected peddle on the board, which will be added to their score and substracted from the income of the other players respectively
+
