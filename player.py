@@ -1,26 +1,28 @@
-import Grass
-import Card
-
+from grass import Grass
+from card import Card
+from behaviour import *
+from thinking import Thinking
 
 class Player:
     """
-    Everything that
+    Everything that the player manages is in this class
+    That includes the players believes, knowledge the player has and its values
+    The player also manages its own side of the board
     """
-    def __init__(self, name, behaviour: str, card_eval: dict, game: Grass):
+    def __init__(self, name, behaviour: Behaviour, game: Grass):
         self.name = name
         self.behaviour = behaviour
-        self.card_eval = card_eval
         self.skips = 0
         self.hassle = []
         self.stash = []
         self.hand = []
-        self.knowledge_base = {}
+        self.knowledge_base = Thinking(self)
         self.score = 0
         self.banker = False
         self.game = game
 
     def eval_self(self) -> dict:
-        """ simply adds up card values over the stash and hand of a player, regardless of the banker """
+        """ adds up card values over the stash and hand of a player, regardless of the banker """
         # evaluate stash
         protected = 0
         stash = 0
@@ -44,8 +46,8 @@ class Player:
             if c.type == ctype:
                 return self.hand.pop(i)
 
-    def check_hand_card(self, ctype) -> Card:
-        """ check hand for specific card, if found return the card """
+    def check_hand_card(self, ctype) -> bool:
+        """ check, if hand contains card of specified type """
         for c in self.hand:
             if c.type == ctype:
                 return c
@@ -72,11 +74,21 @@ class Player:
         if highest_idx >= 0:
             return self.stash.pop(highest_idx)
 
-    def check_stash_card(self, ctype) -> Card:
-        """ check stash for specific card, if found return card """
+    def take_stash_card(self, value) -> Card:
+        """ take specific stashed peddle card with defined value """
+        for i, c in enumerate(self.stash):
+            if c.type == "pd" and c.value == value:
+                return self.stash.pop(i)
+
+    def check_stash_card(self, ctype: str, value=0) -> Card:
+        """ check, if stash contains card of specified type """
         for c in self.stash:
             if c.type == ctype:
-                return c
+                if value:
+                    if c.value == value:
+                        return c
+                else:
+                    return c
 
     def check_stash_for_protection(self, value) -> list[int]:
         """
@@ -101,96 +113,55 @@ class Player:
         if found_combination:
             return [el[0] for el in collected_peddle]
 
-
     def heated(self) -> int:
         """ check how the market is heated, returns type of heat """
         if self.hassle and self.hassle[-1].type == "hn":
             return self.hassle[-1].value
 
-    # deals the card effects if possible, then returns True.
-    # If a card can't be played normally, it will return false
-    def playable(self, c: Card, target, play=False):
-        """
-        :param c: card to be checked/played
-        :param play: playing the card of question as well
-        :return:
-        """
-        # market opened
-        chosen_card = self.take_hand_card(c)
-        if c.type == "mo":
-            if "mo" in [sc.type for sc in self.stash]:
-                if play:
-                    self.game.waste.append(chosen_card)
-                return False
-            else:
-                if play:
-                    self.stash.append(chosen_card)
-                return True
-
-        # market closed
-        elif c.type == "mc":
-            marketcap = getattr(self.eval_self(), "stash") + getattr(self.eval_self(), "protected")
-            if self.heated() or marketcap < 50000:
-                if play:
-                    self.game.waste.append(chosen_card)
-                return False
-            else:
-                if play:
-                    self.game.score_round()
-                return True
-
-        # peddle cards
-        elif c.type == "pd":
-            if self.heated() or not self.check_stash_card("mo"):
-                if play:
-                    self.game.waste.append(chosen_card)
-                return False
-            else:
-                if play:
-                    self.game.stash.append(chosen_card)
-                return True
-
-        #
-
-
-
-
-        return True
-
     # what would the player do when it is their turn
     def move(self):
+        """
+        This function takes all the steps a player would take to make a move
+        First the player skips or draw a card if possible (else the game ends)
+        Then the player evaluates their position and interacts with the game
+        The player will evaluate all options for interactions and choose to
+        offer or accept open trades with other players
+        After trading phase, the player plays a card
+        :return: if the game hasn't ended after the move, it returns True
+        """
         # check if we need to skip a round
-        if self.status:
-            self.status -= 1
+        if self.skips:
+            self.skips -= 1
             return True
 
-        # if cards are left draw
+        # if cards are left draw, else the game ends by the rules
         # TODO implement drawing from discard pile
         if self.game.deck:
             self.hand.append(self.game.deck.pop())
-
-        # As long as holding cards, the player can do sth
-        if not self.hand:
+        else:
             return False
 
-        # employ the players policy to pick the cards to play
+        # evaluate cards and needs
+        # TODO implement evaluation by behaviour
+
+        # trade
+        # TODO implement trading
+        self.trade()
         if self.behaviour == "simple":
             evaluation = self.eval_self()
 
-            # always try to close the market asap
-            type = "mc"
-            if self.check_hand_card(type):
-                total = sum(evaluation)
-                if total > 0 and total - getattr(evaluation, "hand") > 50000:
-                    if self.playable(type):
-                        self.play(type, play = True)
-                        return False
         return True
 
     # offer or accept trades
-    def trade(self, offer):
+    def trade(self, offer = None):
+        """
+        Offer or accept trades: If an offer is given, the offer is evalueated
+        If the evaluation is positive, the offer is accepted and
+        """
         # TODO implement card trading options
         return False
+
+
 
     # send a card to the player left of you before knowing the card receiving, popping that card from the hand
     def send_card_left(self):

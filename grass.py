@@ -1,6 +1,6 @@
 import random
-import Card
-import Player
+from card import *
+from player import Player
 
 ### Grass Rules:
 # 24 different card types
@@ -26,93 +26,65 @@ def new_deck():
     deck = []
 
     # market open and closed cards
-    deck.extend([Card.MarketOpen() for i in range(10)])
-    deck.extend([Card.MarketClose() for i in range(5)])
+    deck.extend([MarketOpen() for i in range(10)])
+    deck.extend([MarketClose() for i in range(5)])
 
     # peddle cards
-    deck.extend([card("pd", 5000) for i in range(12)])
-    deck.extend([card("pd", 25000) for i in range(10)])
-    deck.extend([card("pd", 50000) for i in range(5)])
-    deck.append(card("pd", 100000))
+    deck.extend([Peddle(5000) for i in range(12)])
+    deck.extend([Peddle(25000) for i in range(10)])
+    deck.extend([Peddle(50000) for i in range(5)])
+    deck.append(Peddle(100000))
 
     # heat on and off cards and pay fine, matching value = same heat
-    deck.extend([card("hn", 1) for i in range(3)])
-    deck.extend([card("hn", 2) for i in range(3)])
-    deck.extend([card("hn", 3) for i in range(3)])
-    deck.extend([card("hn", 4) for i in range(3)])
-    deck.extend([card("hf", 1) for i in range(5)])
-    deck.extend([card("hf", 2) for i in range(5)])
-    deck.extend([card("hf", 3) for i in range(5)])
-    deck.extend([card("hf", 4) for i in range(5)])
-    deck.extend([card("hp", 0) for i in range(4)])
+    deck.extend([HeatOn(1) for i in range(3)])
+    deck.extend([HeatOn(2) for i in range(3)])
+    deck.extend([HeatOn(3) for i in range(3)])
+    deck.extend([HeatOn(4) for i in range(3)])
+    deck.extend([HeatOff(1) for i in range(5)])
+    deck.extend([HeatOff(2) for i in range(5)])
+    deck.extend([HeatOff(3) for i in range(5)])
+    deck.extend([HeatOff(4) for i in range(5)])
+    deck.extend([PayFine() for i in range(4)])
 
-    # nirvana cards stonehigh and euphoria
-    deck.extend([card("ns", 1) for i in range(5)])
-    deck.append(card("ne", 1))
+    # nirvana cards StoneHigh and Euphoria
+    deck.extend([StoneHigh() for i in range(5)])
+    deck.append(Euphoria())
 
     # paranoia cards
-    deck.extend([card("ds", 25000) for i in range(4)])
-    deck.extend([card("dc", 50000) for i in range(3)])
-    deck.extend([card("du", 100000) for i in range(1)])
+    deck.extend([SoldOut() for i in range(4)])
+    deck.extend([DoubleCrossed() for i in range(3)])
+    deck.append(UtterlyWipedOut())
 
     # protection cards
-    deck.extend([card("pr", 25000) for i in range(4)])
-    deck.extend([card("pr", 50000) for i in range(2)])
+    deck.extend([Protected(25000) for i in range(4)])
+    deck.extend([Protected(50000) for i in range(2)])
 
     # skim cards
-    deck.extend([card("sn", 0) for i in range(4)])
-    deck.append(card("ba", 0))
+    deck.extend([StealNeighborsPot() for i in range(4)])
+    deck.append(TheBanker())
 
     return deck
 
 
-standard_eval = {
-    "hand": {
-        "mo": 7500,
-        "mc": 55000,
-        "ps": 4000,
-        "pl": 15000,
-        "pb": 30000,
-        "ph": 15000,
-        "hn": 3000,
-        "hf": 45000,
-        "hp": 0,
-        "ns": 60000,
-        "ne": 120000,
-        "ds": -15000,
-        "dc": -40000,
-        "du": -100000,
-        "al": 25000,
-        "ab": 50000,
-        "sn": 60000,
-        "ba": 100000
-    },
-    "stash": {
-        "mo": 0,
-        "ps": 4000,
-        "pl": 20000,
-        "pb": 40000,
-        "ph": 100000,
-        "hn": 0,
-        "al": 25000,
-        "ab": 50000,
-    },
-    "status": {
-        "ready": 0,
-        "mo": 20000,
-        "heated": -50000,
-        "skip": -35000,
-    }
-}
-
-
-class grass:
+class Grass:
     def __init__(self, players):
+        self.status = "initializing"
         self.players = players
         self.waste = []
+        self.waste_status = "discarded"
         self.deck = []
         self.round = 0
         self.winner = "none"
+
+    def discard(self, card: Card):
+        """ handles discarding a card to the discard pile """
+        self.waste_status = "discarded"
+        self.waste.append(card)
+
+    def burn(self, card: Card):
+        """ handles playing a card to the discard pile """
+        self.waste_status = "played"
+        self.waste.append(card)
 
     def initialize_round(self):
         for pl in self.players():
@@ -127,15 +99,20 @@ class grass:
     # counting up the stashes and subtracting/adding losses from hands and the banker
     def score_round(self):
         banker = True in [pl.banker for pl in self.players]
+        round_summary = []
         for pl in self.players:
             values = pl.eval_self()
             stash = getattr(values, "stash")
             if banker:
                 banker.score += 0.2 * stash
                 stash *= 0.8
-            pl.score += stash + getattr(values, "protected") + getattr(values, "hand")
+            round_result = stash + getattr(values, "protected") + getattr(values, "hand")
+            pl.score += round_result
+            round_summary.append(round_result)
+        return round_summary
 
     def play_round(self):
+        self.status = "setup"
         self.round += 1
         self.initialize_round()
         card_pool = self.deck.copy()
@@ -149,12 +126,14 @@ class grass:
         self.waste.append(self.deck.pop())
 
         # game mainloop
-        moves = True
+        self.status = "playing"
 
         #starting player
         turn_player = self.round % len(self.players)
-        while moves:
+        while self.status == "playing":
             pl = self.players()[turn_player]
-            moves = pl.move(self)
+            if not(pl.move(self)):
+                self.status = "cards ran out"
             turn_player = (turn_player + 1) % len(self.players)
 
+        self.score_round()
