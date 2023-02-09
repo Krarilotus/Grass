@@ -29,6 +29,7 @@ class Action:
     Actions can be checked if viable and if so they can always be executed.
     -> Make sure to check viability first in the case that you are unsure!
     """
+
     def __init__(self, player: Player):
         self.player = player
         self.time = -1
@@ -42,6 +43,7 @@ class Action:
 
 class Skip(Action):
     """ skipping your turn is boring, but it's a valid action """
+
     def __init__(self, player: Player):
         super().__init__(player)
 
@@ -53,8 +55,15 @@ class Skip(Action):
         return self.player.skips > 0
 
 
+class DrawCard(Action):
+    def __init__(self, player: Player, pile: str = "deck"):
+        super().__init__(player)
+        self.pile = pile
+
+
 class PlayCard(Action):
     """ playing a card, possible only if we have the card on hand """
+
     def __init__(self, player: Player, card_type: str, *args: list):
         super().__init__(player)
         self.card_type = card_type
@@ -71,6 +80,7 @@ class PlayCard(Action):
 
 class ShowCard(Action):
     """ Showing a card requires it to be in your hand! """
+
     def __init__(self, player: Player, card_type: str):
         super().__init__(player)
         self.card_type = card_type
@@ -84,6 +94,7 @@ class ShowCard(Action):
 
 class CardTrade(Action):
     """ Trading a card for another card requires both players to have a card of the specified type! """
+
     def __init__(self, player: Player, target: Player, my_card_type: str, your_card_type: str):
         super().__init__(player)
         self.target = target
@@ -95,15 +106,8 @@ class CardTrade(Action):
         self.player.hand.append(self.target.take_hand_card(self.your_card_type))
         self.target.hand.append(self.player.take_hand_card(self.my_card_type))
 
-
-    def viable(self, game: ):
-
-
-
-
-
-
-
+    def viable(self, game: Grass):
+        return self.player.check_hand_card(self.my_card_type) and self.target.check_hand_card(self.your_card_type)
 
 
 class Offer(Action):
@@ -111,4 +115,3 @@ class Offer(Action):
         super().__init__(player)
         self.conditions = conditions
         self.actions = actions
-
