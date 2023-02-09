@@ -1,7 +1,7 @@
 import random
 from card import *
+from action import *
 from player import Player
-
 ### Grass Rules:
 # 24 different card types
 # - pebble money cards (4): 12x5k, 10x25k, 5x50k, 1x100k
@@ -22,58 +22,16 @@ from player import Player
 # - first to be at 250k total wins
 
 
-def new_deck():
-    deck = []
-
-    # market open and closed cards
-    deck.extend([MarketOpen() for i in range(10)])
-    deck.extend([MarketClose() for i in range(5)])
-
-    # peddle cards
-    deck.extend([Peddle(5000) for i in range(12)])
-    deck.extend([Peddle(25000) for i in range(10)])
-    deck.extend([Peddle(50000) for i in range(5)])
-    deck.append(Peddle(100000))
-
-    # heat on and off cards and pay fine, matching value = same heat
-    deck.extend([HeatOn(1) for i in range(3)])
-    deck.extend([HeatOn(2) for i in range(3)])
-    deck.extend([HeatOn(3) for i in range(3)])
-    deck.extend([HeatOn(4) for i in range(3)])
-    deck.extend([HeatOff(1) for i in range(5)])
-    deck.extend([HeatOff(2) for i in range(5)])
-    deck.extend([HeatOff(3) for i in range(5)])
-    deck.extend([HeatOff(4) for i in range(5)])
-    deck.extend([PayFine() for i in range(4)])
-
-    # nirvana cards StoneHigh and Euphoria
-    deck.extend([StoneHigh() for i in range(5)])
-    deck.append(Euphoria())
-
-    # paranoia cards
-    deck.extend([SoldOut() for i in range(4)])
-    deck.extend([DoubleCrossed() for i in range(3)])
-    deck.append(UtterlyWipedOut())
-
-    # protection cards
-    deck.extend([Protected(25000) for i in range(4)])
-    deck.extend([Protected(50000) for i in range(2)])
-
-    # skim cards
-    deck.extend([StealNeighborsPot() for i in range(4)])
-    deck.append(TheBanker())
-
-    return deck
-
-
 class Grass:
-    def __init__(self, players):
+    def __init__(self, players: list[Player]):
         self.status = "initializing"
         self.players = players
         self.waste = []
         self.waste_status = "discarded"
         self.deck = []
-        self.round = 0
+        self.card_pool = []
+        self.rounds = []
+        self.turn = 0
         self.winner = "none"
 
     def discard(self, card: Card):
@@ -87,7 +45,7 @@ class Grass:
         self.waste.append(card)
 
     def initialize_round(self):
-        for pl in self.players():
+        for pl in self.players:
             pl.hand = []
         self.waste = []
         self.deck = []
@@ -96,26 +54,38 @@ class Grass:
             self.deck.extend(new_deck())
         random.shuffle(self.deck)
 
+    def find_banker(self):
+        for i, pl in enumerate(self.players):
+            if pl.check_hand_card("ba"):
+                return i
+        return -1
+
     # counting up the stashes and subtracting/adding losses from hands and the banker
     def score_round(self):
-        banker = True in [pl.banker for pl in self.players]
+        banker = self.find_banker()
         round_summary = []
         for pl in self.players:
             values = pl.eval_self()
             stash = getattr(values, "stash")
-            if banker:
-                banker.score += 0.2 * stash
-                stash *= 0.8
+            if banker >= 0:
+                self.players[banker].score += 0.2 * stash
+                stash -= 0.2 * stash
             round_result = stash + getattr(values, "protected") + getattr(values, "hand")
             pl.score += round_result
             round_summary.append(round_result)
         return round_summary
 
+    def handle_action(self, action: Action):
+        self.rounds[-1].append(action)
+        action.effect(self)
+
+
     def play_round(self):
         self.status = "setup"
-        self.round += 1
+        self.rounds.append([])
+        self.turn = 0
         self.initialize_round()
-        card_pool = self.deck.copy()
+        self.card_pool = self.deck.copy()
 
         # draw initial hand cards
         for count in range(6):
@@ -129,11 +99,12 @@ class Grass:
         self.status = "playing"
 
         #starting player
-        turn_player = self.round % len(self.players)
+        turn_player = len(self.rounds) % len(self.players)
         while self.status == "playing":
-            pl = self.players()[turn_player]
-            if not(pl.move(self)):
+            pl = self.players[turn_player]
+            if not(pl.move()):
                 self.status = "cards ran out"
             turn_player = (turn_player + 1) % len(self.players)
 
         self.score_round()
+        self.status = "between rounds"

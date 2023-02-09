@@ -3,13 +3,15 @@ from card import Card
 from behaviour import *
 from thinking import Thinking
 
+
 class Player:
     """
     Everything that the player manages is in this class
     That includes the players believes, knowledge the player has and its values
     The player also manages its own side of the board
     """
-    def __init__(self, name, behaviour: Behaviour, game: Grass):
+
+    def __init__(self, name, behaviour: Behaviour):
         self.name = name
         self.behaviour = behaviour
         self.skips = 0
@@ -18,8 +20,6 @@ class Player:
         self.hand = []
         self.knowledge_base = Thinking(self)
         self.score = 0
-        self.banker = False
-        self.game = game
 
     def eval_self(self) -> dict:
         """ adds up card values over the stash and hand of a player, regardless of the banker """
@@ -40,17 +40,25 @@ class Player:
 
         return {"protected": protected, "stash": stash, "hand": hand}
 
-    def take_hand_card(self, ctype) -> Card:
+    def take_hand_card(self, ctype: str, cvalue: int = 0) -> Card:
         """ take one card from hand, removes it """
         for i, c in enumerate(self.hand):
             if c.type == ctype:
-                return self.hand.pop(i)
+                if cvalue:
+                    if c.value == cvalue:
+                        return self.hand.pop(i)
+                else:
+                    return self.hand.pop(i)
 
-    def check_hand_card(self, ctype) -> bool:
+    def check_hand_card(self, ctype, cvalue: int = 0) -> bool:
         """ check, if hand contains card of specified type """
         for c in self.hand:
             if c.type == ctype:
-                return c
+                if cvalue:
+                    if c.value == cvalue:
+                        return True
+                else:
+                    return True
 
     def take_lowest_stash_card(self) -> Card:
         """ take lowest peddle from stash, removes it """
@@ -80,15 +88,15 @@ class Player:
             if c.type == "pd" and c.value == value:
                 return self.stash.pop(i)
 
-    def check_stash_card(self, ctype: str, value=0) -> Card:
+    def check_stash_card(self, ctype: str, value=0) -> bool:
         """ check, if stash contains card of specified type """
         for c in self.stash:
             if c.type == ctype:
                 if value:
                     if c.value == value:
-                        return c
+                        return True
                 else:
-                    return c
+                    return True
 
     def check_stash_for_protection(self, value) -> list[int]:
         """
@@ -98,7 +106,7 @@ class Player:
         peddle = []
         for i, c in enumerate(self.stash):
             if c.type == "pd":
-                peddle.append((i,c))
+                peddle.append((i, c))
         sorted_peddle = sorted(peddle, key=lambda el: el[1].value, reverse=True)
         collected_peddle = []
         found_combination = False
@@ -119,7 +127,7 @@ class Player:
             return self.hassle[-1].value
 
     # what would the player do when it is their turn
-    def move(self):
+    def move(self, game: Grass):
         """
         This function takes all the steps a player would take to make a move
         First the player skips or draw a card if possible (else the game ends)
@@ -129,6 +137,7 @@ class Player:
         After trading phase, the player plays a card
         :return: if the game hasn't ended after the move, it returns True
         """
+        game.turn += 1
         # check if we need to skip a round
         if self.skips:
             self.skips -= 1
@@ -136,8 +145,8 @@ class Player:
 
         # if cards are left draw, else the game ends by the rules
         # TODO implement drawing from discard pile
-        if self.game.deck:
-            self.hand.append(self.game.deck.pop())
+        if game.deck:
+            self.hand.append(game.deck.pop())
         else:
             return False
 
@@ -153,15 +162,13 @@ class Player:
         return True
 
     # offer or accept trades
-    def trade(self, offer = None):
+    def trade(self, offer=None):
         """
         Offer or accept trades: If an offer is given, the offer is evalueated
         If the evaluation is positive, the offer is accepted and
         """
         # TODO implement card trading options
         return False
-
-
 
     # send a card to the player left of you before knowing the card receiving, popping that card from the hand
     def send_card_left(self):

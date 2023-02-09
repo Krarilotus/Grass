@@ -9,6 +9,12 @@ class Card:
         self.type = ""
         self.value = 0
 
+    def playable(self, *args):
+        pass
+
+    def play(self, *args):
+        pass
+
 
 class MarketOpen(Card):
     """ open the market as long as you don't already have one """
@@ -76,7 +82,7 @@ class HeatOn(Card):
         self.value = value
 
     @staticmethod
-    def playable(target: Player) -> Card:
+    def playable(target: Player) -> bool:
         return target.check_stash_card("mo")
 
     def play(self, game: Grass, target: Player):
@@ -113,7 +119,7 @@ class PayFine(Card):
         self.value = 0
 
     @staticmethod
-    def playable(player: Player, cvalue: int) -> int | list:
+    def playable(player: Player, cvalue: int) -> int | bool:
         return player.heated() and player.check_stash_card("pd", cvalue)
 
     def play(self, player: Player, game: Grass, cvalue: int):
@@ -128,7 +134,7 @@ class Nirvana(Card):
     """ Can always play Nirvana cards, but really its only 'played' properly if we already have a market """
 
     @staticmethod
-    def playable(player: Player) -> Card:
+    def playable(player: Player) -> bool:
         return player.check_stash_card("mo")
 
 
@@ -146,10 +152,10 @@ class StoneHigh(Nirvana):
                 peddle_card = pl.take_lowest_stash_card()
                 if peddle_card:
                     player.stash.append(peddle_card)
-            player.move()
+            player.move(game)
         else:
             game.discard(self)
-            player.move()
+            player.move(game)
 
 
 class Euphoria(Nirvana):
@@ -166,10 +172,10 @@ class Euphoria(Nirvana):
                 peddle_card = pl.take_highest_stash_card()
                 if peddle_card:
                     player.stash.append(peddle_card)
-            player.move()
+            player.move(game)
         else:
             game.discard(self)
-            player.move()
+            player.move(game)
 
 
 class Paranoia(Card):
@@ -297,3 +303,47 @@ class TheBanker(Card):
 
     def play(self, game: Grass):
         game.discard(self)
+
+
+def new_deck():
+    deck = []
+
+    # market open and closed cards
+    deck.extend([MarketOpen() for i in range(10)])
+    deck.extend([MarketClose() for i in range(5)])
+
+    # peddle cards
+    deck.extend([Peddle(5000) for i in range(12)])
+    deck.extend([Peddle(25000) for i in range(10)])
+    deck.extend([Peddle(50000) for i in range(5)])
+    deck.append(Peddle(100000))
+
+    # heat on and off cards and pay fine, matching value = same heat
+    deck.extend([HeatOn(1) for i in range(3)])
+    deck.extend([HeatOn(2) for i in range(3)])
+    deck.extend([HeatOn(3) for i in range(3)])
+    deck.extend([HeatOn(4) for i in range(3)])
+    deck.extend([HeatOff(1) for i in range(5)])
+    deck.extend([HeatOff(2) for i in range(5)])
+    deck.extend([HeatOff(3) for i in range(5)])
+    deck.extend([HeatOff(4) for i in range(5)])
+    deck.extend([PayFine() for i in range(4)])
+
+    # nirvana cards StoneHigh and Euphoria
+    deck.extend([StoneHigh() for i in range(5)])
+    deck.append(Euphoria())
+
+    # paranoia cards
+    deck.extend([SoldOut() for i in range(4)])
+    deck.extend([DoubleCrossed() for i in range(3)])
+    deck.append(UtterlyWipedOut())
+
+    # protection cards
+    deck.extend([Protected(25000) for i in range(4)])
+    deck.extend([Protected(50000) for i in range(2)])
+
+    # skim cards
+    deck.extend([StealNeighborsPot() for i in range(4)])
+    deck.append(TheBanker())
+
+    return deck
