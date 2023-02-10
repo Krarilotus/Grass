@@ -1,4 +1,4 @@
-standard_eval = {
+naive_eval = {
     "hand": {
         "MarketOpen": 7500,
         "MarketClosed": 55000,
@@ -43,7 +43,7 @@ class Behaviour:
     It will also be able to offer and accept trades
     """
     def __init__(self):
-        self.concept_values = standard_eval
+        self.concept_values = naive_eval
         self.believes = {}
         self.worth = 0
 

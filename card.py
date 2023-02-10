@@ -83,7 +83,7 @@ class HeatOn(Card):
 
     @staticmethod
     def playable(target: Player) -> bool:
-        return target.check_stash_card("mo")
+        return bool(target.check_stash_card("mo"))
 
     def play(self, game: Grass, target: Player):
         if self.playable(target=target):
@@ -135,7 +135,7 @@ class Nirvana(Card):
 
     @staticmethod
     def playable(player: Player) -> bool:
-        return player.check_stash_card("mo")
+        return bool(player.check_stash_card("mo"))
 
 
 class StoneHigh(Nirvana):

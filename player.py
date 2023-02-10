@@ -1,7 +1,9 @@
-from grass import Grass
+import random
+
 from card import Card
 from behaviour import *
 from thinking import Thinking
+from action import *
 
 
 class Player:
@@ -50,15 +52,31 @@ class Player:
                 else:
                     return self.hand.pop(i)
 
-    def check_hand_card(self, ctype, cvalue: int = 0) -> bool:
+    def check_hand_card(self, ctype, cvalue: int = 0) -> Card:
         """ check, if hand contains card of specified type """
         for c in self.hand:
             if c.type == ctype:
                 if cvalue:
                     if c.value == cvalue:
-                        return True
+                        return c
                 else:
-                    return True
+                    return c
+
+    def highest_stashed_peddle_value(self) -> int:
+        """ return highest peddle value, else return 0"""
+        highest = 0
+        peddles = [pd.value for pd in self.stash if pd.type == "pd"]
+        if peddles:
+            highest = max(peddles)
+        return highest
+
+    def lowest_stashed_peddle_value(self) -> int:
+        """ return lowest peddle value, else return 0"""
+        lowest = 0
+        peddles = [pd.value for pd in self.stash if pd.type == "pd"]
+        if peddles:
+            lowest = min(peddles)
+        return lowest
 
     def take_lowest_stash_card(self) -> Card:
         """ take lowest peddle from stash, removes it """
@@ -88,15 +106,15 @@ class Player:
             if c.type == "pd" and c.value == value:
                 return self.stash.pop(i)
 
-    def check_stash_card(self, ctype: str, value=0) -> bool:
+    def check_stash_card(self, ctype: str, value=0) -> Card:
         """ check, if stash contains card of specified type """
         for c in self.stash:
             if c.type == ctype:
                 if value:
                     if c.value == value:
-                        return True
+                        return c
                 else:
-                    return True
+                    return c
 
     def check_stash_for_protection(self, value) -> list[int]:
         """
@@ -140,32 +158,61 @@ class Player:
         game.turn += 1
         # check if we need to skip a round
         if self.skips:
-            self.skips -= 1
+            game.handle_action(Skip(self))
             return True
 
-        # if cards are left draw, else the game ends by the rules
+        # TODO employ policy to evaluate and find good actions
+        # evaluate cards and needs
+        evaluation = self.eval_self()
+
+        # if cards are left in the deck draw, else the game ends by the rules
         # TODO implement drawing from discard pile
         if game.deck:
-            self.hand.append(game.deck.pop())
+            game.handle_action(DrawCard(self, "deck"))
         else:
             return False
 
-        # evaluate cards and needs
-        # TODO implement evaluation by behaviour
-
-        # trade
-        # TODO implement trading
+        # TODO implement trading (in progress)
         self.trade()
-        if self.behaviour == "simple":
-            evaluation = self.eval_self()
 
+        # play a card
+        # TODO play best evaluated card
+        c = random.choice(self.hand)
+        while c.type in ["ba", "mc"]:
+            c = random.choice(self.hand)
+            if c.type == "mc" and c.playable(self):
+                break
+
+        if c.type in ["mc", "mo", "pd", "hf", "st", "eu", "ds", "dc", "du", "pr"]:
+            game.handle_action(PlayCard(self, c.type, [self, game]))
+        elif c.type == "hn":
+            rand_player = random.choice(game.players)
+            while rand_player is self:
+                rand_player = random.choice(game.players)
+            game.handle_action(PlayCard(self, c.type, [game, rand_player]))
+        elif c.type == "pf":
+            game.handle_action(PlayCard(self, c.type, [self, game, self.lowest_stashed_peddle_value()]))
+        elif c.type == "sn":
+            rand_player = random.choice(game.players)
+            while rand_player is self:
+                rand_player = random.choice(game.players)
+            game.handle_action(PlayCard(self, c.type, [self, game, rand_player, rand_player.highest_stashed_peddle_value()]))
         return True
 
     # offer or accept trades
-    def trade(self, offer=None):
+    def trade(self):
+        """ everything that has to do with the player trading """
+        # TODO employ policy and evaluation of trade possibilities and needs
+        # TODO let all players have a shot at trading while it is trading phase
+        # but make sure it doesn't take too long!
+        pass
+
+    def trade_offer(self, offer=None):
         """
-        Offer or accept trades: If an offer is given, the offer is evalueated
-        If the evaluation is positive, the offer is accepted and
+        Offer or accept trades: If an offer is given, the offer is evaluated
+        If the evaluation is positive, the offer is either agreed on or accepted
+        else the offer is rejected and there could even be counter offers
+        If the offer doesn't target the player, it might react with a counter offer as well
         """
         # TODO implement card trading options
         return False
@@ -173,5 +220,6 @@ class Player:
     # send a card to the player left of you before knowing the card receiving, popping that card from the hand
     def send_card_left(self):
         # send any negative cards left, else the one with the minimum value
-        # TODO sending cards left when paranoia cards are played
+        # TODO choose good card left when paranoia cards are played based on policy
+        c = random.choice(self.hand)
         return False

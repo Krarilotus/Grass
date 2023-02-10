@@ -12,7 +12,7 @@ from player import Player
 # - skim cards (5): 4x steal, 1x banker
 # - market cards ( 15): 10x open market, 5x close market
 
-### Players play in turns and can trade cards 1 for 1 when its their turn
+### Players play in turns and can trade cards 1 for 1 when it's their turn
 # - need open market to start shashing peddle
 # - market can be heated and heat can be removed with coutner heat off ard or for lowest money amount and pay fine
 # - market needs to be free of heat to close market, as well as 50k needs to be stashed
@@ -76,9 +76,16 @@ class Grass:
         return round_summary
 
     def handle_action(self, action: Action):
-        self.rounds[-1].append(action)
-        action.effect(self)
+        if action.viable(self):
+            self.rounds[-1].append(action)
+            action.effect(self)
 
+    def market_place(self, player):
+        """
+        This function handles resolving open offers and returns a list of all
+        open offers currently available to accept as well as which offers
+        were already rejected or agreed on.
+        """
 
     def play_round(self):
         self.status = "setup"
@@ -102,7 +109,7 @@ class Grass:
         turn_player = len(self.rounds) % len(self.players)
         while self.status == "playing":
             pl = self.players[turn_player]
-            if not(pl.move()):
+            if not(pl.move(self)):
                 self.status = "cards ran out"
             turn_player = (turn_player + 1) % len(self.players)
 
