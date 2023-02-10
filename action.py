@@ -222,7 +222,7 @@ class RetractOffer(Action):
     on their bluff. However, if players already agreed to an offer prematurely
     (which they could also just forget about) it might not shine a bright light on them...
     """
-    def __init__(self, player: Player, offer: Offer)
+    def __init__(self, player: Player, offer: Offer):
         super().__init__(player)
         self.offer = offer
 
